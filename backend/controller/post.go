@@ -62,7 +62,7 @@ func GetPostDetailHandler(c *gin.Context) {
 	ResponseSuccess(c, data)
 }
 
-// GetPostListHandler 或缺帖子列表接口
+// GetPostListHandler 获取帖子列表接口
 func GetPostListHandler(c *gin.Context) {
 
 	page, size := getPageInfo(c)
