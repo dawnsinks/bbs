@@ -1,36 +1,24 @@
 package mysql
 
 import (
-	"bluebell/settings"
-	"fmt"
-
-	"go.uber.org/zap"
-
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
+	"bbs/models"
+	"bbs/settings"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
-var db *sqlx.DB
+var db *gorm.DB
 
-func Init(cfg *settings.MySQLConfig) (err error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=Local",
-		cfg.User,
-		cfg.Password,
-		cfg.Host,
-		cfg.Port,
-		cfg.DB,
-	)
-	// 也可以使用MustConnect连接不成功就panic
-	db, err = sqlx.Connect("mysql", dsn)
+func Init() (err error) {
+	url := settings.DBURL()
+	db, err = gorm.Open(mysql.Open(url))
 	if err != nil {
-		zap.L().Error("connect DB failed", zap.Error(err))
-		return
+		panic(err)
 	}
-	db.SetMaxOpenConns(cfg.MaxOpenConns)
-	db.SetMaxIdleConns(cfg.MaxIdleConns)
-	return
-}
+	err = db.AutoMigrate(&models.User{}, &models.Community{})
 
-func Close() {
-	_ = db.Close()
+	if err != nil {
+		return err
+	}
+	return
 }

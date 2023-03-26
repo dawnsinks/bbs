@@ -2,48 +2,37 @@ package controller
 
 import (
 	"errors"
-	"strconv"
-
 	"github.com/gin-gonic/gin"
+	"strconv"
 )
 
-const CtxUserIDKey = "UserID"
+const ContextUserIdKey = "UserID"
 
-var ErrorUserNotLogin = errors.New("用户未登录")
+var UserNotLogin = errors.New("用户未登录")
 
-// getCurrentUser 获取当前登录的用户id
-func getCurrentUser(c *gin.Context) (userID int64, err error) {
-	uid, ok := c.Get(CtxUserIDKey)
+func GetCurrentUser(c *gin.Context) (UserID int64, err error) {
+	uid, ok := c.Get(ContextUserIdKey)
 	if !ok {
-		err = ErrorUserNotLogin
-		return
+		return 0, UserNotLogin
 	}
-	userID, ok = uid.(int64)
+	UserID, ok = uid.(int64)
 	if !ok {
-		err = ErrorUserNotLogin
-		return
+		return 0, UserNotLogin
 	}
 	return
 }
 
-func getPageInfo(c *gin.Context) (int64, int64) {
-	// 获取分页参数
-	pageStr := c.Query("page")
-	sizeStr := c.Query("size")
-
-	var (
-		page int64
-		size int64
-		err  error
-	)
-
+func getPageInfo(c *gin.Context) (page, size int64) {
+	pageStr := c.Query("offset")
+	SizeStr := c.Query("limit")
+	var err error
 	page, err = strconv.ParseInt(pageStr, 10, 64)
 	if err != nil {
-		page = 1 // 默认一页
+		page = 1
 	}
-	size, err = strconv.ParseInt(sizeStr, 10, 64)
+	size, err = strconv.ParseInt(SizeStr, 10, 64)
 	if err != nil {
-		size = 10 // 默认大小为10
+		size = 10
 	}
 	return page, size
 }

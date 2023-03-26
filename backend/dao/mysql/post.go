@@ -1,25 +1,25 @@
 package mysql
 
 import (
-	"bluebell/models"
+	"bbs/models"
 )
 
-func CreatePost(p *models.Post) (err error) {
-	sqlStr := `insert into post (post_id, title, content, author_id, community_id) values(?,?,?,?,?)`
-	_, err = db.Exec(sqlStr, p.ID, p.Title, p.Content, p.AuthorID, p.CommunityID)
-	return
+func CreatePost(p *models.Post) error {
+	return db.Create(&p).Error
+
 }
 
-func GetPostById(pid int64) (post *models.Post, err error) {
-	post = new(models.Post)
-	sqlStr := `select post_id, title, content, author_id, community_id, create_time from post where post_id = ?`
-	err = db.Get(post, sqlStr, pid)
-	return
+func GetPost(pid int64) (p *models.Post, err error) {
+	p = new(models.Post)
+	err = db.Find(&p).Error
+	return p, err
 }
 
-func GetPostList(page int64, size int64) (posts []*models.Post, err error) {
-	sqlStr := `select post_id, title, content, author_id, community_id, create_time from post limit ?, ?`
-	posts = make([]*models.Post, 0, 2)
-	err = db.Select(&posts, sqlStr, (page-1)*size, size)
-	return
+func GetPosts(page, size int64) (posts *[]models.Post, err error) {
+	err = db.Offset(int((page - 1) * size)).Limit(int(size)).Find(&posts).Error
+	return posts, err
+}
+
+func GetPostsByIds(data []*models.Post, ids []string) error {
+	return db.Find(&data, ids).Error
 }

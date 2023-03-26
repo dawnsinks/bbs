@@ -1,44 +1,37 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-/*
-{
-	"code": 10000, 	// 程序中的错误码
-	"msg": xx, 		// 提示信息
-	"data": {} 		// 数据
-}
-*/
-
 type ResponseData struct {
-	Code ResCode     `json:"code"`
-	Msg  interface{} `json:"msg"`
-	Data interface{} `json:"data"`
+	Code    ResCode     `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"` // omitempty当data为空时,不展示这个字段
 }
 
 func ResponseError(c *gin.Context, code ResCode) {
 	c.JSON(http.StatusOK, &ResponseData{
-		Code: code,
-		Msg:  code.Msg(),
-		Data: nil,
+		Code:    code,
+		Message: code.Msg(),
+		Data:    nil,
 	})
 }
 
-func ResponseErrorWithMsg(c *gin.Context, code ResCode, msg interface{}) {
+func ResponseErrorWithMsg(c *gin.Context, code ResCode, data interface{}) {
 	c.JSON(http.StatusOK, &ResponseData{
-		Code: code,
-		Msg:  msg,
-		Data: nil,
+		Code:    code,
+		Message: code.Msg(),
+		Data:    nil,
 	})
 }
 
 func ResponseSuccess(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, &ResponseData{
-		Code: CodeSuccess,
-		Msg:  CodeSuccess.Msg(),
-		Data: data,
+		Code:    CodeSuccess,
+		Message: CodeSuccess.Msg(),
+		Data:    data,
 	})
 }

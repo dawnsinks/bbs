@@ -3,32 +3,35 @@ package controller
 type ResCode int64
 
 const (
-	CodeSuccess ResCode = 1000 + iota
-	CodeInvalidParam
-	CodeUserExist
-	CodeUserNotExist
-	CodeInvalidPassword
-	CodeServerBusy
+	CodeSuccess         ResCode = 1000
+	CodeInvalidParams   ResCode = 1001
+	CodeUserExist       ResCode = 1002
+	CodeUserNotExist    ResCode = 1003
+	CodeInvalidPassword ResCode = 1004
+	CodeServerBusy      ResCode = 1005
 
-	CodeInvalidToken
-	CodeNeedLogin
+	CodeInvalidToken      ResCode = 1006
+	CodeInvalidAuthFormat ResCode = 1007
+	CodeNotLogin          ResCode = 1008
 )
 
-var codeMsgMap = map[ResCode]string{
+var mp = map[ResCode]string{
 	CodeSuccess:         "success",
-	CodeInvalidParam:    "请求参数错误",
-	CodeUserExist:       "用户名已存在",
+	CodeInvalidParams:   "请求参数错误",
+	CodeUserExist:       "用户名重复",
+	CodeUserNotExist:    "用户不存在",
 	CodeInvalidPassword: "用户名或密码错误",
-	CodeUserNotExist:    "用户名不存在",
 	CodeServerBusy:      "服务繁忙",
-	CodeNeedLogin:       "需要登录",
-	CodeInvalidToken:    "无效的token",
+
+	CodeInvalidToken:      "无效的Token",
+	CodeInvalidAuthFormat: "认证格式有误",
+	CodeNotLogin:          "未登录",
 }
 
 func (c ResCode) Msg() string {
-	msg, ok := codeMsgMap[c]
-	if !ok {
-		msg = codeMsgMap[CodeServerBusy]
+	msg, ok := mp[c]
+	if ok {
+		return msg
 	}
-	return msg
+	return mp[CodeServerBusy]
 }

@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"bluebell/settings"
+	"bbs/settings"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -16,14 +16,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Init 初始化Logger
+var lg *zap.Logger
+
+// Init 初始化lg
 func Init(cfg *settings.LogConfig, mode string) (err error) {
-	writeSyncer := getLogWriter(
-		cfg.Filename,
-		cfg.MaxSize,
-		cfg.MaxBackups,
-		cfg.MaxAge,
-	)
+	writeSyncer := getLogWriter(cfg.Filename, cfg.MaxSize, cfg.MaxBackups, cfg.MaxAge)
 	encoder := getEncoder()
 	var l = new(zapcore.Level)
 	err = l.UnmarshalText([]byte(cfg.Level))
@@ -32,18 +29,19 @@ func Init(cfg *settings.LogConfig, mode string) (err error) {
 	}
 	var core zapcore.Core
 	if mode == "dev" {
-		// 进入到开发模式，日志输出到终端
+		// 进入开发模式，日志输出到终端
 		consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
-		core = zapcore.NewTee(
-			zapcore.NewCore(encoder, writeSyncer, l),
-			zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), zapcore.DebugLevel),
+		core = zapcore.NewTee( // 多个输出
+			zapcore.NewCore(encoder, writeSyncer, l),                                     // 往日志文件里面写
+			zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), zapcore.DebugLevel), // 终端输出
 		)
 	} else {
 		core = zapcore.NewCore(encoder, writeSyncer, l)
 	}
 
-	lg := zap.New(core, zap.AddCaller())
-	zap.ReplaceGlobals(lg) // 替换zap包中全局的logger实例，后续在其他包中只需使用zap.L()调用即可
+	lg = zap.New(core, zap.AddCaller())
+	zap.ReplaceGlobals(lg)
+	zap.L().Info("init logger success")
 	return
 }
 
@@ -76,7 +74,7 @@ func GinLogger() gin.HandlerFunc {
 		c.Next()
 
 		cost := time.Since(start)
-		zap.L().Info(path,
+		lg.Info(path,
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
 			zap.String("path", path),
@@ -107,7 +105,7 @@ func GinRecovery(stack bool) gin.HandlerFunc {
 
 				httpRequest, _ := httputil.DumpRequest(c.Request, false)
 				if brokenPipe {
-					zap.L().Error(c.Request.URL.Path,
+					lg.Error(c.Request.URL.Path,
 						zap.Any("error", err),
 						zap.String("request", string(httpRequest)),
 					)
@@ -118,13 +116,13 @@ func GinRecovery(stack bool) gin.HandlerFunc {
 				}
 
 				if stack {
-					zap.L().Error("[Recovery from panic]",
+					lg.Error("[Recovery from panic]",
 						zap.Any("error", err),
 						zap.String("request", string(httpRequest)),
 						zap.String("stack", string(debug.Stack())),
 					)
 				} else {
-					zap.L().Error("[Recovery from panic]",
+					lg.Error("[Recovery from panic]",
 						zap.Any("error", err),
 						zap.String("request", string(httpRequest)),
 					)

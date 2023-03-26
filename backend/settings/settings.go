@@ -4,43 +4,44 @@ import (
 	"fmt"
 
 	"github.com/fsnotify/fsnotify"
-
 	"github.com/spf13/viper"
 )
 
-// Conf 全局变量，保存程序所有信息
-var Conf = new(AppConfig)
+var Conf = new(Config)
 
-type AppConfig struct {
-	Name      string `mapstructure:"name"`
-	Mode      string `mapstructure:"mode"`
-	Version   string `mapstructure:"version"`
-	StartTime string `mapstructure:"start_time"`
-	MachineID int64  `mapstructure:"machine_id"`
-	Port      int    `mapstructure:"port"`
-
+type Config struct {
+	*AppConfig   `mapstructure:"app"`
 	*LogConfig   `mapstructure:"log"`
 	*MySQLConfig `mapstructure:"mysql"`
 	*RedisConfig `mapstructure:"redis"`
 }
 
+type AppConfig struct {
+	Mode      string `mapstructure:"mode"`
+	Port      int    `mapstructure:"port"`
+	Name      string `mapstructure:"name"`
+	Version   string `mapstructure:"version"`
+	StartTime string `mapstructure:"start_time"`
+	MachineID int    `mapstructure:"machine_id"`
+}
+
 type MySQLConfig struct {
-	Host         string `mapstructure:"host"`
-	User         string `mapstructure:"user"`
-	Password     string `mapstructure:"password"`
-	DB           string `mapstructure:"dbname"`
-	Port         int    `mapstructure:"port"`
-	MaxOpenConns int    `mapstructure:"max_open_conns"`
-	MaxIdleConns int    `mapstructure:"max_idle_conns"`
+	Host        string `mapstructure:"host"`
+	User        string `mapstructure:"user"`
+	Password    string `mapstructure:"password"`
+	DB          string `mapstructure:"dbname"`
+	Port        int    `mapstructure:"port"`
+	MaxOpenCons int    `mapstructure:"max_open_cons"`
+	MaxIdleCons int    `mapstructure:"max_idle_cons"`
 }
 
 type RedisConfig struct {
-	Host         string `mapstructure:"host"`
-	Password     string `mapstructure:"password"`
-	Port         int    `mapstructure:"port"`
-	DB           int    `mapstructure:"db"`
-	PoolSize     int    `mapstructure:"pool_size"`
-	MinIdleConns int    `mapstructure:"min_idle_conns"`
+	Host        string `mapstructure:"host"`
+	Password    string `mapstructure:"password"`
+	Port        int    `mapstructure:"port"`
+	DB          int    `mapstructure:"db"`
+	PoolSize    int    `mapstructure:"pool_size"`
+	MinIdleCons int    `mapstructure:"min_idle_cons"`
 }
 
 type LogConfig struct {
@@ -51,28 +52,42 @@ type LogConfig struct {
 	MaxBackups int    `mapstructure:"max_backups"`
 }
 
-func Init() (err error) {
-	//viper.SetConfigFile("./config.yaml") // 指定配置文件路径
-	viper.SetConfigName("config") // 配置文件名称(无扩展名)
-	viper.SetConfigType("yaml")   // 如果配置文件的名称中没有扩展名，则需要配置此项
-	viper.AddConfigPath(".")      // 还可以在工作目录中查找配置
-	err = viper.ReadInConfig()    // 查找并读取配置文件
-	if err != nil {               // 处理读取配置文件的错误
-		fmt.Printf("Fatal error config file: %s \n", err)
-		return
-	}
+func Init() error {
+	viper.SetConfigFile("config.yaml")
 
-	// 把读取到配置信息反序列化到Conf 变量中
-
-	if err := viper.Unmarshal(Conf); err != nil {
-		fmt.Printf("viper.Unmarshal failed, err:%v\n", err)
-	}
-	viper.WatchConfig() // 实时监控配置文件
+	viper.WatchConfig()
 	viper.OnConfigChange(func(in fsnotify.Event) {
-		fmt.Println("配置文件修改了~~~")
-		if err := viper.Unmarshal(Conf); err != nil {
-			fmt.Printf("viper.Unmarshal failed, err:%s \n", err)
+		fmt.Println("配置文件被修改...")
+		err := viper.Unmarshal(&Conf)
+		if err != nil {
+			return
 		}
+		panic(err)
 	})
-	return
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("ReadInConfig failed, err: %v", err))
+	}
+	if err := viper.Unmarshal(&Conf); err != nil {
+		panic(fmt.Errorf("unmarshal to Conf failed, err:%v", err))
+	}
+	return err
+}
+
+func DBURL() string {
+	mysql := Conf.MySQLConfig
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
+		mysql.User,
+		mysql.Password,
+		mysql.Host,
+		mysql.Port,
+		mysql.DB,
+	)
+}
+
+func RdsURL() string {
+	return fmt.Sprintf("%s:%s", viper.GetString("redis.host"),
+		viper.GetString("redis.port"))
+
 }

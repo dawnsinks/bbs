@@ -1,41 +1,60 @@
 package logic
 
 import (
-	"bluebell/dao/mysql"
-	"bluebell/models"
-	"bluebell/pkg/jwt"
-	"bluebell/pkg/snowflake"
+	"bbs/dao/mysql"
+	"bbs/models"
+	"bbs/pkg/jwt"
+	snowflake "bbs/pkg/sf"
+	"crypto/md5"
+	"encoding/hex"
+	"errors"
+	"go.uber.org/zap"
 )
 
-// 存放业务逻辑
+var secret = "dawnsink"
 
-func SignUp(p *models.ParamSignUp) (err error) {
-	// 1.判断用户存在不存在
-	if err := mysql.CheckUserExist(p.Username); err != nil {
-		return err
-	}
-
-	// 2.生成UID
-	userID := snowflake.GenID()
-	// 构造一个User实例
-	user := models.User{
-		UserID:   userID,
-		Username: p.Username,
-		Password: p.Password,
-	}
-	// 3.保存进数据库
-	return mysql.InsertUser(user)
+func encryptPassword(p string) string {
+	h := md5.New()
+	h.Write([]byte(secret))
+	return hex.EncodeToString(h.Sum([]byte(p)))
 }
 
-func Login(p *models.ParamsLogin) (token string, err error) {
-	user := &models.User{
-		Username: p.Username,
-		Password: p.Password,
+func SignUp(p *models.SignUp) (err error) {
+	if exist := mysql.CheckUserExist(p.Username); exist {
+		return errors.New("用户已存在")
 	}
-	// 可以拿到user.UserID
-	if err := mysql.Login(user); err != nil {
-		return "", err
+	var u = models.User{
+		UserId:   snowflake.GenId(),
+		UserName: p.Username,
+		Password: encryptPassword(p.Password),
 	}
-	// 生成JWT
-	return jwt.GenToken(user.UserID, user.Username)
+
+	if err := mysql.InsertUser(&u); err != nil {
+		zap.L().Error("用户注册失败", zap.Error(err))
+	}
+	return
+}
+
+func Login(p *models.Login) (token *models.Token, err error) {
+	if exist := mysql.CheckUserExist(p.Username); !exist {
+		return nil, errors.New("用户名错误")
+	}
+
+	user := models.User{
+		UserName: p.Username,
+		Password: encryptPassword(p.Password),
+	}
+
+	if err := mysql.Login(&user); err != nil {
+		zap.L().Error("用户登录失败", zap.Error(err))
+		return nil, nil
+	}
+	a, r, err := jwt.GenToken(uint64(user.UserId), user.UserName)
+	token = &models.Token{
+		UserId:       user.UserId,
+		UserName:     p.Username,
+		AccessToken:  a,
+		RefreshToken: r,
+	}
+	return token, nil
 }

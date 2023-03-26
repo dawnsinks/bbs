@@ -1,15 +1,10 @@
 package models
 
-import "time"
+import "gorm.io/gorm"
 
 type Community struct {
-	ID   int64  `json:"id" db:"community_id"`
-	Name string `json:"name" db:"community_name"`
-}
-
-type CommunityDetail struct {
-	ID           int64     `json:"id" db:"community_id"`
-	Name         string    `json:"name" db:"community_name"`
-	Introduction string    `json:"introduction, omitempty" db:"introduction"`
-	CreateTime   time.Time `json:"create_time" db:"create_time"`
+	gorm.Model
+	CommunityId   string `json:"community_id" gorm:"community_id"`
+	CommunityName string `json:"community_name" gorm:"community_name"`
+	Introduction  string `json:"introduction" gorm:"introduction"`
 }

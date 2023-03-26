@@ -1,18 +1,13 @@
-
-name: "bluebell"
-mode: "dev"
-port: 8081
-start_time: "2009-01-01"
-machine_id: 1
-version: "v0.0.1"
-
-auth:
-  jwt_expire: 7200
+app:
+  name: "bbs"
+  mode: "dev"
+  port: 8081
 
 log:
   level: "debug"
-  filename: "web_app.log"
-  max_size: 200
+  filename: "app.log"
+  encoding: "json"
+  max_size: 100
   max_age: 30
   max_backups: 7
 
@@ -20,14 +15,10 @@ mysql:
   host: "127.0.0.1"
   port: 3306
   user: "root"
-  password: "123456"
+  password: "yngAPDlZZ#4iu3r0f3@ttp5NSuSxsZ6nOzECHV1ghaq6GTyTw3Re!@9P3yvj2"
   dbname: "bbs"
-  max_open_conns: 200
-  max_idle_conns: 50
-
 redis:
   host: "127.0.0.1"
   port: 6379
-  password: ""
-  db: 0
-  pool_size: 100
+auth:
+  jwt_expire: 24
